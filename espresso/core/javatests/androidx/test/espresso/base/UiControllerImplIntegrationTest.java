@@ -91,7 +91,6 @@ public class UiControllerImplIntegrationTest {
                     new ThreadPoolExecutorExtractor(Looper.getMainLooper())
                         .getAsyncTaskThreadPool())
                 .asIdleNotifier(),
-            new NoopRunnableIdleNotifier(),
             new Provider<IdleNotifier<IdleNotificationCallback>>() {
               @Override
               public IdleNotifier<IdleNotificationCallback> get() {

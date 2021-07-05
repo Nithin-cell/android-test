@@ -31,7 +31,6 @@ import androidx.test.platform.io.PlatformTestStorage;
 import androidx.test.platform.io.PlatformTestStorageRegistry;
 import androidx.test.runner.lifecycle.ActivityLifecycleMonitor;
 import androidx.test.runner.lifecycle.ActivityLifecycleMonitorRegistry;
-import com.google.common.base.Optional;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
@@ -68,19 +67,6 @@ public class BaseLayerModule {
   @Singleton
   public Looper provideMainLooper() {
     return Looper.getMainLooper();
-  }
-
-  @Provides
-  @Singleton
-  @CompatAsyncTask
-  public IdleNotifier<Runnable> provideCompatAsyncTaskMonitor(
-      ThreadPoolExecutorExtractor extractor) {
-    Optional<ThreadPoolExecutor> compatThreadPool = extractor.getCompatAsyncTaskThreadPool();
-    if (compatThreadPool.isPresent()) {
-      return new AsyncTaskPoolMonitor(compatThreadPool.get()).asIdleNotifier();
-    } else {
-      return new NoopRunnableIdleNotifier();
-    }
   }
 
   @Provides

@@ -38,8 +38,6 @@ import javax.inject.Singleton;
 @Singleton
 final class ThreadPoolExecutorExtractor {
   private static final String ASYNC_TASK_CLASS_NAME = "android.os.AsyncTask";
-  private static final String MODERN_ASYNC_TASK_CLASS_NAME =
-      "androidx.loader.content.ModernAsyncTask";
   private static final String MODERN_ASYNC_TASK_FIELD_NAME = "THREAD_POOL_EXECUTOR";
   private static final String LEGACY_ASYNC_TASK_FIELD_NAME = "sExecutor";
   private final Handler mainHandler;
@@ -61,18 +59,6 @@ final class ThreadPoolExecutorExtractor {
       return runOnMainThread(getTask).get().get();
     } catch (InterruptedException ie) {
       throw new RuntimeException("Interrupted while trying to get the async task executor!", ie);
-    } catch (ExecutionException ee) {
-      throw new RuntimeException(ee.getCause());
-    }
-  }
-
-  public Optional<ThreadPoolExecutor> getCompatAsyncTaskThreadPool() {
-    try {
-      return runOnMainThread(
-              new FutureTask<Optional<ThreadPoolExecutor>>(MODERN_ASYNC_TASK_EXTRACTOR))
-          .get();
-    } catch (InterruptedException ie) {
-      throw new RuntimeException("Interrupted while trying to get the compat async executor!", ie);
     } catch (ExecutionException ee) {
       throw new RuntimeException(ee.getCause());
     }
@@ -105,22 +91,6 @@ final class ThreadPoolExecutorExtractor {
 
     return futureToRun;
   }
-
-  private static final Callable<Optional<ThreadPoolExecutor>> MODERN_ASYNC_TASK_EXTRACTOR =
-      new Callable<Optional<ThreadPoolExecutor>>() {
-        @Override
-        public Optional<ThreadPoolExecutor> call() throws Exception {
-          try {
-            Class<?> modernClazz = Class.forName(MODERN_ASYNC_TASK_CLASS_NAME);
-            Field executorField = modernClazz.getField(MODERN_ASYNC_TASK_FIELD_NAME);
-            return Optional.of((ThreadPoolExecutor) executorField.get(null));
-          } catch (ClassNotFoundException cnfe) {
-            return Optional.<ThreadPoolExecutor>absent();
-          } catch (NoSuchFieldException nsfe) {
-            return Optional.<ThreadPoolExecutor>absent();
-          }
-        }
-      };
 
   private static final Callable<Class<?>> LOAD_ASYNC_TASK_CLASS =
       new Callable<Class<?>>() {

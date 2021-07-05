@@ -121,7 +121,7 @@ public class UiControllerImplTest {
         new UiControllerImpl(
             injector,
             new AsyncTaskPoolMonitor(asyncPool).asIdleNotifier(),
-            new NoopRunnableIdleNotifier(),
+            // new NoopRunnableIdleNotifier(),
             new Provider<IdleNotifier<IdleNotificationCallback>>() {
               @Override
               public IdleNotifier<IdleNotificationCallback> get() {

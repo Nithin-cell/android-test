@@ -75,7 +75,6 @@ final class UiControllerImpl
   enum IdleCondition {
     DELAY_HAS_PAST,
     ASYNC_TASKS_HAVE_IDLED,
-    COMPAT_TASKS_HAVE_IDLED,
     KEY_INJECT_HAS_COMPLETED,
     MOTION_INJECTION_HAS_COMPLETED,
     DYNAMIC_TASKS_HAVE_IDLED;
@@ -155,7 +154,6 @@ final class UiControllerImpl
   private MainThreadInterrogation interrogation;
   private int generation = 0;
   private IdleNotifier<Runnable> asyncIdle;
-  private IdleNotifier<Runnable> compatIdle;
   private Provider<IdleNotifier<IdleNotificationCallback>> dynamicIdleProvider;
 
   @VisibleForTesting
@@ -163,13 +161,11 @@ final class UiControllerImpl
   UiControllerImpl(
       EventInjector eventInjector,
       @SdkAsyncTask IdleNotifier<Runnable> asyncIdle,
-      @CompatAsyncTask IdleNotifier<Runnable> compatIdle,
       Provider<IdleNotifier<IdleNotificationCallback>> dynamicIdle,
       Looper mainLooper,
       IdlingResourceRegistry idlingResourceRegistry) {
     this.eventInjector = checkNotNull(eventInjector);
     this.asyncIdle = checkNotNull(asyncIdle);
-    this.compatIdle = checkNotNull(compatIdle);
     this.conditionSet = IdleCondition.createConditionSet();
     this.dynamicIdleProvider = checkNotNull(dynamicIdle);
     this.mainLooper = checkNotNull(mainLooper);
@@ -411,12 +407,6 @@ final class UiControllerImpl
         condChecks.add(IdleCondition.ASYNC_TASKS_HAVE_IDLED);
       }
 
-      if (!compatIdle.isIdleNow()) {
-        compatIdle.registerNotificationCallback(
-            new SignalingTask<Void>(NO_OP, IdleCondition.COMPAT_TASKS_HAVE_IDLED, generation));
-        condChecks.add(IdleCondition.COMPAT_TASKS_HAVE_IDLED);
-      }
-
       if (!dynamicIdle.isIdleNow()) {
         final IdlingPolicy warning = IdlingPolicies.getDynamicIdlingResourceWarningPolicy();
         final IdlingPolicy error = IdlingPolicies.getDynamicIdlingResourceErrorPolicy();
@@ -447,10 +437,9 @@ final class UiControllerImpl
         dynamicIdle = loopUntil(condChecks, dynamicIdle);
       } finally {
         asyncIdle.cancelCallback();
-        compatIdle.cancelCallback();
         dynamicIdle.cancelCallback();
       }
-    } while (!asyncIdle.isIdleNow() || !compatIdle.isIdleNow() || !dynamicIdle.isIdleNow());
+    } while (!asyncIdle.isIdleNow() || !dynamicIdle.isIdleNow());
   }
 
   @Override
@@ -544,14 +533,6 @@ final class UiControllerImpl
                       && Debug.isDebuggerConnected())) {
                 asyncIdle.cancelCallback();
                 asyncIdle = new NoopRunnableIdleNotifier();
-              }
-              break;
-            case COMPAT_TASKS_HAVE_IDLED:
-              if (masterIdlePolicy.getDisableOnTimeout()
-                  || (!masterIdlePolicy.getTimeoutIfDebuggerAttached()
-                      && Debug.isDebuggerConnected())) {
-                compatIdle.cancelCallback();
-                compatIdle = new NoopRunnableIdleNotifier();
               }
               break;
             case DYNAMIC_TASKS_HAVE_IDLED:
