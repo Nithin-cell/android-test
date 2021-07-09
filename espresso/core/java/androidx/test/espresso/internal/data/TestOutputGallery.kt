@@ -25,6 +25,8 @@ class TestOutputGallery {
   var head: ScreenData? = null
   // A reference to the last [ScreenData] node.
   var tail: ScreenData? = null
+  // The number of distinct [ScreenData] objects reachable from `head`
+  var size = 0
 
   /**
    * Adds a [ScreenData] object to the graph.
@@ -36,5 +38,6 @@ class TestOutputGallery {
       tail!!.addAction(ActionData(tail!!, screen))
     }
     tail = screen
+    size++
   }
 }

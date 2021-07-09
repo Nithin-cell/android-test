@@ -39,9 +39,19 @@ import android.view.View;
 import android.view.ViewConfiguration;
 import androidx.test.espresso.action.ViewActions;
 import androidx.test.espresso.base.IdlingResourceRegistry;
+import androidx.test.espresso.internal.data.ScreenData;
+import androidx.test.espresso.internal.data.TestArtifact;
+import androidx.test.espresso.internal.data.TestOutputGallery;
 import androidx.test.espresso.util.TreeIterables;
+import androidx.test.internal.platform.util.TestOutputEmitter;
 import androidx.test.platform.app.InstrumentationRegistry;
+import androidx.test.platform.io.PlatformTestStorage;
+import androidx.test.platform.io.PlatformTestStorageRegistry;
+import androidx.test.services.storage.TestStorage;
 import com.google.common.util.concurrent.ListenableFutureTask;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.io.PrintStream;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
@@ -62,8 +72,48 @@ public final class Espresso {
   private static final BaseLayerComponent BASE = GraphHolder.baseLayer();
   private static final IdlingResourceRegistry baseRegistry = BASE.idlingResourceRegistry();
   private static final int TIMEOUT_SECONDS = 5;
+  private static final TestOutputGallery outputGallery = new TestOutputGallery();
+  private static final TestStorage ts = new TestStorage();
+  private static OutputStream os = null;
+  private static PrintStream writer = null;
 
   private Espresso() {}
+
+  private static boolean checkCustomArg(String arg) {
+    PlatformTestStorage pts = PlatformTestStorageRegistry.getInstance();
+    if (pts.getInputArgs().containsKey(arg)) {
+      if (Boolean.parseBoolean(pts.getInputArg(arg))) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private static void argTrigger() {
+    ScreenData screen = new ScreenData();
+    String pathname = "screenshot-" + outputGallery.getSize() + ".png";
+    TestOutputEmitter.takeScreenshot(pathname);
+    screen.addArtifact(new TestArtifact(pathname, ".png"));
+    writeHtml(pathname);
+    outputGallery.addScreen(screen);
+  }
+
+  private static void writeHtml(String pathname) {
+    try {
+      if (os == null) {
+        os = ts.openOutputFile("testOutput.html");
+      }
+      if (writer == null) {
+        writer = new PrintStream(os);
+      }
+      String printString = "<img src=\"./" + pathname + "\" />";
+      writer.append(printString);
+      writer.flush();
+    } catch (IOException e) {
+      e.printStackTrace();
+      return;
+    }
+  }
 
   /**
    * Creates a {@link ViewInteraction} for a given view. Note: the view has to be part of the view
@@ -81,6 +131,9 @@ public final class Espresso {
   @CheckReturnValue
   @CheckResult
   public static ViewInteraction onView(final Matcher<View> viewMatcher) {
+    if (checkCustomArg("custom_arg")) {
+      argTrigger();
+    }
     return BASE.plus(new ViewInteractionModule(viewMatcher)).viewInteraction();
   }
 
