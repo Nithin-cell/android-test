@@ -11,7 +11,7 @@ exports_files([
 
 # Creates maven release repository
 maven_repository(
-    name = "axt_m2repository",
+    name = "2repository",
     srcs = [
         "//core/java/androidx/test/core:core_maven_artifact",
         "//espresso/accessibility/java/androidx/test/espresso/accessibility:accessibility_checks_maven_artifact",
